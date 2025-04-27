@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.8
+// @version      0.9
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
 // @connect      githubusercontent.com
+// @updateURL    https://raw.githubusercontent.com/nicsnakevip/crystal_data/main/crystal_helper.user.js
 // ==/UserScript==
 
 (function() {
