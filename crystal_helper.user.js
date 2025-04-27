@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
@@ -44,10 +44,8 @@
                     
                     crystalData = data;
                     console.log('水晶数据加载成功:', crystalData.length + ' 条记录');
-                    console.log('数据示例:', crystalData[0]);
                 } catch (e) {
                     console.error('解析水晶数据失败:', e);
-                    console.error('响应内容:', response.responseText.substring(0, 200));
                 }
             },
             onerror: function(error) {
@@ -70,7 +68,7 @@
             display: none;
             z-index: 999999;
             max-width: 400px;
-            min-width: 180px;
+            min-width: 200px;
             font-size: 14px;
             line-height: 1.5;
             color: #333;
@@ -83,10 +81,8 @@
     function showInfo(input, tooltip) {
         const value = input.value.trim();
         console.log('输入值:', value);
-        console.log('当前数据状态:', crystalData ? '已加载' : '未加载');
         
         if (!value || !crystalData) {
-            console.log('无效输入或数据未加载');
             tooltip.style.display = 'none';
             return;
         }
@@ -94,32 +90,38 @@
         // 搜索匹配项
         let matchingItems = crystalData.filter(item => {
             if (!item || typeof item !== 'object') return false;
-            return item.category === value || 
-                   (item.name && item.name.includes(value)) ||
-                   (item.searchKey && item.searchKey.includes(value));
+            
+            // 检查searchKey中的所有可能值
+            if (item.searchKey) {
+                const searchKeys = item.searchKey.split('，');
+                if (searchKeys.some(key => key.includes(value))) {
+                    return true;
+                }
+            }
+            
+            // 检查name和category
+            return (item.name && item.name.includes(value)) || 
+                   (item.category && item.category.includes(value));
         });
-        console.log('匹配结果数:', matchingItems.length);
 
         if (matchingItems.length > 0) {
-            console.log('找到匹配项:', matchingItems);
             const info = matchingItems.map(item => {
-                // 提取分类路径
-                const pathParts = item.name.split('--');
-                const mainPath = pathParts[0].split('/').join('/');
-                const subPath = pathParts.slice(1).join('--');
-                const displayName = subPath ? `${mainPath}--${subPath}` : mainPath;
+                let displayName = item.name || '';
+                let categoryName = item.category || '';
+                let searchKeys = item.searchKey ? item.searchKey.split('，').join('、') : '';
                 
                 return `
                     <div style="
-                        padding: 8px;
-                        border: 1px solid #eee;
+                        padding: 10px;
+                        border: 1px solid #e8e8e8;
                         border-radius: 4px;
                         background: #fafafa;
                         margin-bottom: 8px;
                     ">
                         <div style="color: #333;">
-                            <strong style="font-size: 14px;">${displayName}</strong>
-                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category}</div>
+                            ${displayName ? `<div style="font-weight: bold; margin-bottom: 4px;">${displayName}</div>` : ''}
+                            <div style="font-size: 13px; color: #666;">分类：${categoryName}</div>
+                            ${searchKeys ? `<div style="font-size: 12px; color: #888; margin-top: 4px;">关键词：${searchKeys}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -141,7 +143,6 @@
             }
             tooltip.style.left = rect.left + 'px';
         } else {
-            console.log('未找到匹配项');
             tooltip.style.display = 'none';
         }
     }
