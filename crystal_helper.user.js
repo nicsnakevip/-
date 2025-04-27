@@ -108,7 +108,6 @@
             const info = matchingItems.map(item => {
                 let displayName = item.name || '';
                 let categoryName = item.category || '';
-                let searchKeys = item.searchKey ? item.searchKey.split('，').join('、') : '';
                 
                 return `
                     <div style="
@@ -121,7 +120,6 @@
                         <div style="color: #333;">
                             ${displayName ? `<div style="font-weight: bold; margin-bottom: 4px;">${displayName}</div>` : ''}
                             <div style="font-size: 13px; color: #666;">分类：${categoryName}</div>
-                            ${searchKeys ? `<div style="font-size: 12px; color: #888; margin-top: 4px;">关键词：${searchKeys}</div>` : ''}
                         </div>
                     </div>
                 `;
