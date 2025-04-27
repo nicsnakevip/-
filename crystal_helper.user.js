@@ -101,6 +101,11 @@
         if (matchingItems.length > 0) {
             console.log('找到匹配项:', matchingItems);
             const info = matchingItems.map(item => {
+                // 处理分隔符
+                const displayName = item.name
+                    .replace(/----/g, '--')  // 将4个横线替换为2个
+                    .replace(/---/g, '--');  // 将3个横线替换为2个
+                
                 return `
                     <div style="
                         padding: 8px;
@@ -111,7 +116,7 @@
                         line-height: 1.6;
                     ">
                         <div style="color: #34495e;">
-                            <strong>${item.name}</strong>
+                            <strong>${displayName}</strong>
                             <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category}</div>
                         </div>
                     </div>
