@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.9
+// @version      1.0
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
@@ -91,17 +91,24 @@
             return;
         }
 
-        // 首先尝试精确匹配name或category
+        // 搜索匹配项
         let matchingItems = crystalData.filter(item => {
             if (!item || typeof item !== 'object') return false;
             return item.category === value || 
-                   (item.name && item.name.includes(value));
+                   (item.name && item.name.includes(value)) ||
+                   (item.searchKey && item.searchKey.includes(value));
         });
-        console.log('精确匹配结果数:', matchingItems.length);
+        console.log('匹配结果数:', matchingItems.length);
 
         if (matchingItems.length > 0) {
             console.log('找到匹配项:', matchingItems);
             const info = matchingItems.map(item => {
+                // 提取分类路径
+                const pathParts = item.name.split('--');
+                const mainPath = pathParts[0].split('/').join('/');
+                const subPath = pathParts.slice(1).join('--');
+                const displayName = subPath ? `${mainPath}--${subPath}` : mainPath;
+                
                 return `
                     <div style="
                         padding: 8px;
@@ -109,11 +116,10 @@
                         border-radius: 4px;
                         background: #fafafa;
                         margin-bottom: 8px;
-                        line-height: 1.6;
                     ">
-                        <div style="color: #34495e;">
-                            <strong>${item.name || ''}</strong>
-                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category || ''}</div>
+                        <div style="color: #333;">
+                            <strong style="font-size: 14px;">${displayName}</strong>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category}</div>
                         </div>
                     </div>
                 `;
@@ -124,7 +130,15 @@
             
             // 设置提示框位置
             const rect = input.getBoundingClientRect();
-            tooltip.style.top = (rect.bottom + 5) + 'px';
+            const tooltipHeight = tooltip.offsetHeight;
+            const viewportHeight = window.innerHeight;
+            
+            // 如果提示框底部超出视窗，则显示在输入框上方
+            if (rect.bottom + tooltipHeight > viewportHeight) {
+                tooltip.style.top = (rect.top - tooltipHeight - 5) + 'px';
+            } else {
+                tooltip.style.top = (rect.bottom + 5) + 'px';
+            }
             tooltip.style.left = rect.left + 'px';
         } else {
             console.log('未找到匹配项');
