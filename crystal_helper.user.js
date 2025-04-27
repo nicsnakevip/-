@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.4
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
