@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.7
+// @version      0.8
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
+// @connect      githubusercontent.com
 // ==/UserScript==
 
 (function() {
@@ -23,15 +24,29 @@
         GM_xmlhttpRequest({
             method: 'GET',
             url: GITHUB_RAW_URL,
+            headers: {
+                'Accept': 'application/json'
+            },
             onload: function(response) {
                 try {
                     console.log('收到数据响应:', response.status);
-                    console.log('响应数据:', response.responseText.substring(0, 100) + '...');
-                    crystalData = JSON.parse(response.responseText);
+                    if (response.status !== 200) {
+                        console.error('加载失败，状态码:', response.status);
+                        return;
+                    }
+                    
+                    const data = JSON.parse(response.responseText);
+                    if (!Array.isArray(data)) {
+                        console.error('数据格式错误，应该是数组');
+                        return;
+                    }
+                    
+                    crystalData = data;
                     console.log('水晶数据加载成功:', crystalData.length + ' 条记录');
+                    console.log('数据示例:', crystalData[0]);
                 } catch (e) {
                     console.error('解析水晶数据失败:', e);
-                    console.error('响应内容:', response.responseText);
+                    console.error('响应内容:', response.responseText.substring(0, 200));
                 }
             },
             onerror: function(error) {
@@ -52,7 +67,7 @@
             border-radius: 6px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: none;
-            z-index: 10000;
+            z-index: 999999;
             max-width: 400px;
             min-width: 180px;
             font-size: 14px;
@@ -71,41 +86,21 @@
         
         if (!value || !crystalData) {
             console.log('无效输入或数据未加载');
+            tooltip.style.display = 'none';
             return;
         }
 
         // 首先尝试精确匹配name或category
         let matchingItems = crystalData.filter(item => {
-            const nameParts = item.name.split('/');
-            const lastNamePart = nameParts[nameParts.length - 1];
-            return item.name === value || 
-                   item.category === value || 
-                   lastNamePart === value ||
-                   (item.searchKey && item.searchKey.split(/[,，、]/).some(key => key.trim() === value));
+            if (!item || typeof item !== 'object') return false;
+            return item.category === value || 
+                   (item.name && item.name.includes(value));
         });
         console.log('精确匹配结果数:', matchingItems.length);
-
-        // 如果没有精确匹配，则尝试模糊匹配
-        if (matchingItems.length === 0) {
-            matchingItems = crystalData.filter(item => {
-                const nameParts = item.name.split('/');
-                const lastNamePart = nameParts[nameParts.length - 1];
-                return item.name.includes(value) || 
-                       item.category.includes(value) || 
-                       lastNamePart.includes(value) ||
-                       (item.searchKey && item.searchKey.includes(value));
-            });
-            console.log('模糊匹配结果数:', matchingItems.length);
-        }
 
         if (matchingItems.length > 0) {
             console.log('找到匹配项:', matchingItems);
             const info = matchingItems.map(item => {
-                // 处理分隔符
-                const displayName = item.name
-                    .replace(/----/g, '--')  // 将4个横线替换为2个
-                    .replace(/---/g, '--');  // 将3个横线替换为2个
-                
                 return `
                     <div style="
                         padding: 8px;
@@ -116,8 +111,8 @@
                         line-height: 1.6;
                     ">
                         <div style="color: #34495e;">
-                            <strong>${displayName}</strong>
-                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category}</div>
+                            <strong>${item.name || ''}</strong>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category || ''}</div>
                         </div>
                     </div>
                 `;
@@ -128,23 +123,8 @@
             
             // 设置提示框位置
             const rect = input.getBoundingClientRect();
-            const tooltipHeight = tooltip.offsetHeight;
-            const viewportHeight = window.innerHeight;
-            const viewportWidth = window.innerWidth;
-            
-            // 垂直位置调整
-            if (rect.bottom + tooltipHeight + 10 > viewportHeight) {
-                tooltip.style.top = Math.max(5, rect.top - tooltipHeight - 5) + 'px';
-            } else {
-                tooltip.style.top = (rect.bottom + 5) + 'px';
-            }
-            
-            // 水平位置调整
-            let left = rect.left;
-            if (left + tooltip.offsetWidth > viewportWidth) {
-                left = viewportWidth - tooltip.offsetWidth - 5;
-            }
-            tooltip.style.left = Math.max(5, left) + 'px';
+            tooltip.style.top = (rect.bottom + 5) + 'px';
+            tooltip.style.left = rect.left + 'px';
         } else {
             console.log('未找到匹配项');
             tooltip.style.display = 'none';
@@ -162,11 +142,15 @@
             if (e.target.tagName === 'INPUT') {
                 console.log('输入框获得焦点');
                 const input = e.target;
-                // 移除可能存在的旧事件监听器
                 const handler = () => showInfo(input, tooltip);
-                input.removeEventListener('input', handler);
-                // 添加新的事件监听器
                 input.addEventListener('input', handler);
+                
+                // 清理函数
+                const cleanup = () => {
+                    input.removeEventListener('input', handler);
+                    input.removeEventListener('blur', cleanup);
+                };
+                input.addEventListener('blur', cleanup);
             }
         }, true);
 
