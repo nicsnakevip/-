@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.9
+// @version      0.7
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
@@ -75,27 +75,32 @@
         }
 
         // 首先尝试精确匹配name或category
-        let matchingItems = crystalData.filter(item => 
-            item.name === value || item.category === value ||
-            (item.searchKey && item.searchKey.split(/[,，、]/).some(key => key.trim() === value))
-        );
+        let matchingItems = crystalData.filter(item => {
+            const nameParts = item.name.split('/');
+            const lastNamePart = nameParts[nameParts.length - 1];
+            return item.name === value || 
+                   item.category === value || 
+                   lastNamePart === value ||
+                   (item.searchKey && item.searchKey.split(/[,，、]/).some(key => key.trim() === value));
+        });
         console.log('精确匹配结果数:', matchingItems.length);
 
         // 如果没有精确匹配，则尝试模糊匹配
         if (matchingItems.length === 0) {
-            matchingItems = crystalData.filter(item => 
-                item.name.includes(value) || 
-                item.category.includes(value) ||
-                (item.searchKey && item.searchKey.includes(value))
-            );
+            matchingItems = crystalData.filter(item => {
+                const nameParts = item.name.split('/');
+                const lastNamePart = nameParts[nameParts.length - 1];
+                return item.name.includes(value) || 
+                       item.category.includes(value) || 
+                       lastNamePart.includes(value) ||
+                       (item.searchKey && item.searchKey.includes(value));
+            });
             console.log('模糊匹配结果数:', matchingItems.length);
         }
 
         if (matchingItems.length > 0) {
             console.log('找到匹配项:', matchingItems);
-            // 显示name和category
             const info = matchingItems.map(item => {
-                // 处理分类路径显示
                 const nameParts = item.name.split('/');
                 const lastNamePart = nameParts[nameParts.length - 1];
                 const categoryPath = nameParts.slice(0, -1).join(' > ');
@@ -112,6 +117,7 @@
                         <div style="color: #34495e;">
                             <strong>${lastNamePart}</strong>
                             ${categoryPath ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">分类路径: ${categoryPath}</div>` : ''}
+                            ${item.category !== lastNamePart ? `<div style="font-size: 12px; color: #666;">显示名称: ${item.category}</div>` : ''}
                         </div>
                     </div>
                 `;
