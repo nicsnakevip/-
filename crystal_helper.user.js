@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      0.6
+// @version      0.8
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
@@ -42,15 +42,17 @@
         tooltip.style.cssText = `
             position: fixed;
             background: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: none;
             z-index: 10000;
-            max-width: 300px;
+            max-width: 400px;
+            min-width: 180px;
             font-size: 14px;
             line-height: 1.5;
+            color: #333;
         `;
         document.body.appendChild(tooltip);
         return tooltip;
@@ -61,18 +63,38 @@
         const value = input.value.trim();
         if (!value || !crystalData) return;
 
-        const matchingItems = crystalData.filter(item => 
-            item.searchKey.includes(value)  // 主要匹配c列的值
+        // 首先尝试精确匹配searchKey
+        let matchingItems = crystalData.filter(item => 
+            item._searchKey && item._searchKey.split(/[,，、]/).some(key => key.trim() === value)
         );
 
+        // 如果没有精确匹配，则尝试模糊匹配
+        if (matchingItems.length === 0) {
+            matchingItems = crystalData.filter(item => 
+                (item._searchKey && item._searchKey.includes(value))
+            );
+        }
+
         if (matchingItems.length > 0) {
-            const info = matchingItems.map(item => `
-                <div style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
-                    <strong style="color: #333;">名称：</strong> ${item.name || '未知'}<br>
-                    <strong style="color: #333;">类目：</strong> ${item.category || '未知'}<br>
-                    ${item.searchKey ? `<strong style="color: #666;">关键词：</strong> ${item.searchKey}` : ''}
-                </div>
-            `).join('');
+            // 只显示name和category，不显示searchKey
+            const info = matchingItems.map(item => {
+                // 如果name和category相同，只显示一个
+                const displayName = item.name === item.category ? item.name : `${item.name} - ${item.category}`;
+                return `
+                    <div style="
+                        padding: 8px;
+                        border: 1px solid #eee;
+                        border-radius: 4px;
+                        background: #fafafa;
+                        margin-bottom: 8px;
+                        line-height: 1.6;
+                    ">
+                        <div style="color: #34495e;">
+                            ${displayName}
+                        </div>
+                    </div>
+                `;
+            }).join('');
 
             tooltip.innerHTML = info;
             tooltip.style.display = 'block';
@@ -81,15 +103,21 @@
             const rect = input.getBoundingClientRect();
             const tooltipHeight = tooltip.offsetHeight;
             const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
             
-            // 如果提示框底部超出视窗，则显示在输入框上方
-            if (rect.bottom + tooltipHeight > viewportHeight) {
-                tooltip.style.top = (rect.top - tooltipHeight - 5) + 'px';
+            // 垂直位置调整
+            if (rect.bottom + tooltipHeight + 10 > viewportHeight) {
+                tooltip.style.top = Math.max(5, rect.top - tooltipHeight - 5) + 'px';
             } else {
                 tooltip.style.top = (rect.bottom + 5) + 'px';
             }
             
-            tooltip.style.left = rect.left + 'px';
+            // 水平位置调整
+            let left = rect.left;
+            if (left + tooltip.offsetWidth > viewportWidth) {
+                left = viewportWidth - tooltip.offsetWidth - 5;
+            }
+            tooltip.style.left = Math.max(5, left) + 'px';
         } else {
             tooltip.style.display = 'none';
         }
@@ -111,6 +139,13 @@
         // 点击其他地方时隐藏提示框
         document.addEventListener('click', function(e) {
             if (!e.target.closest('input')) {
+                tooltip.style.display = 'none';
+            }
+        });
+
+        // 添加ESC键关闭提示框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
                 tooltip.style.display = 'none';
             }
         });
