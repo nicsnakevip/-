@@ -101,10 +101,6 @@
         if (matchingItems.length > 0) {
             console.log('找到匹配项:', matchingItems);
             const info = matchingItems.map(item => {
-                const nameParts = item.name.split('/');
-                const lastNamePart = nameParts[nameParts.length - 1];
-                const categoryPath = nameParts.slice(0, -1).join(' > ');
-                
                 return `
                     <div style="
                         padding: 8px;
@@ -115,9 +111,8 @@
                         line-height: 1.6;
                     ">
                         <div style="color: #34495e;">
-                            <strong>${lastNamePart}</strong>
-                            ${categoryPath ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">分类路径: ${categoryPath}</div>` : ''}
-                            ${item.category !== lastNamePart ? `<div style="font-size: 12px; color: #666;">显示名称: ${item.category}</div>` : ''}
+                            <strong>${item.name}</strong>
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">分类名称: ${item.category}</div>
                         </div>
                     </div>
                 `;
