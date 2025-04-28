@@ -114,6 +114,7 @@
                         <div style="color: #34495e;">
                             <strong>${lastNamePart}</strong>
                             ${categoryPath ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">分类路径: ${categoryPath}</div>` : ''}
+                            <div style="font-size: 13px; color: #1abc9c; margin-top: 4px;">类别: ${item.category}</div>
                         </div>
                     </div>
                 `;
