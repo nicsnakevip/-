@@ -97,11 +97,6 @@
             console.log('找到匹配项:', matchingItems);
             // 显示name和category
             const info = matchingItems.map(item => {
-                const nameParts = item.name.split('/');
-                const lastNamePart = nameParts[nameParts.length - 1];
-                const categoryPath = nameParts.slice(0, -1).join(' > ');
-                // 判断是否重复
-                // const showCategory = lastNamePart !== item.category;
                 return `
                     <div style="
                         padding: 8px;
@@ -111,10 +106,8 @@
                         margin-bottom: 8px;
                         line-height: 1.6;
                     ">
-                        <div style="color: #34495e;">
-                            ${categoryPath ? `<div style=\"font-size: 12px; color: #666; margin-top: 4px;\">分类路径: ${categoryPath}</div>` : ''}
-                            <div style=\"font-size: 13px; color: #1abc9c; margin-top: 4px;\">类别: ${item.category}</div>
-                        </div>
+                        <div style="font-weight:bold; font-size:15px;">${item.name}</div>
+                        <div style="font-size:13px; color:#1abc9c; margin-top:4px;">类目: ${item.category}</div>
                     </div>
                 `;
             }).join('');
