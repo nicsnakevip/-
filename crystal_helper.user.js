@@ -101,7 +101,7 @@
                 const lastNamePart = nameParts[nameParts.length - 1];
                 const categoryPath = nameParts.slice(0, -1).join(' > ');
                 // 判断是否重复
-                const showCategory = lastNamePart !== item.category;
+                // const showCategory = lastNamePart !== item.category;
                 return `
                     <div style="
                         padding: 8px;
@@ -112,9 +112,8 @@
                         line-height: 1.6;
                     ">
                         <div style="color: #34495e;">
-                            <strong>${lastNamePart}</strong>
                             ${categoryPath ? `<div style=\"font-size: 12px; color: #666; margin-top: 4px;\">分类路径: ${categoryPath}</div>` : ''}
-                            ${showCategory ? `<div style=\"font-size: 13px; color: #1abc9c; margin-top: 4px;\">类别: ${item.category}</div>` : ''}
+                            <div style=\"font-size: 13px; color: #1abc9c; margin-top: 4px;\">类别: ${item.category}</div>
                         </div>
                     </div>
                 `;
