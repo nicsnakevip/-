@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
@@ -30,7 +30,6 @@
             },
             onload: function(response) {
                 try {
-                    console.log('收到数据响应:', response.status);
                     if (response.status !== 200) {
                         console.error('加载失败，状态码:', response.status);
                         return;
@@ -56,7 +55,6 @@
 
     // 创建悬浮提示框
     function createTooltip() {
-        console.log('创建提示框');
         const tooltip = document.createElement('div');
         tooltip.style.cssText = `
             position: fixed;
@@ -80,7 +78,6 @@
     // 显示提示信息
     function showInfo(input, tooltip) {
         const value = input.value.trim();
-        console.log('输入值:', value);
         
         if (!value || !crystalData) {
             tooltip.style.display = 'none';
@@ -91,27 +88,17 @@
         let matchingItems = crystalData.filter(item => {
             if (!item || typeof item !== 'object') return false;
             
-            // 检查searchKey中的所有可能值
-            if (item.searchKey) {
-                const searchKeys = item.searchKey.split('，');
-                if (searchKeys.some(key => key.includes(value))) {
-                    return true;
-                }
+            // 优先匹配searchKey
+            if (item.searchKey && item.searchKey === value) {
+                return true;
             }
             
-            // 检查name和category
-            return (item.name && item.name.includes(value)) || 
-                   (item.category && item.category.includes(value));
+            // 如果没有完全匹配的searchKey，则进行模糊匹配
+            return (item.searchKey && item.searchKey.includes(value));
         });
 
         if (matchingItems.length > 0) {
             const info = matchingItems.map(item => {
-                let displayName = item.name || '';
-                let categoryName = item.category || '';
-                
-                // 提取最后一级分类名称
-                const lastCategory = displayName.split('--').pop().split('---').pop();
-                
                 return `
                     <div style="
                         padding: 10px;
@@ -121,8 +108,8 @@
                         margin-bottom: 8px;
                     ">
                         <div style="color: #333;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">${displayName}</div>
-                            <div style="font-size: 13px; color: #666;">分类：${categoryName}</div>
+                            <div style="font-weight: bold; margin-bottom: 4px;">${item.name || ''}</div>
+                            <div style="font-size: 13px; color: #666;">分类：${item.category || ''}</div>
                         </div>
                     </div>
                 `;
@@ -136,7 +123,6 @@
             const tooltipHeight = tooltip.offsetHeight;
             const viewportHeight = window.innerHeight;
             
-            // 如果提示框底部超出视窗，则显示在输入框上方
             if (rect.bottom + tooltipHeight > viewportHeight) {
                 tooltip.style.top = (rect.top - tooltipHeight - 5) + 'px';
             } else {
@@ -150,19 +136,16 @@
 
     // 初始化
     function init() {
-        console.log('初始化脚本...');
         loadData();
         const tooltip = createTooltip();
 
         // 监听所有输入框
         document.addEventListener('focus', function(e) {
             if (e.target.tagName === 'INPUT') {
-                console.log('输入框获得焦点');
                 const input = e.target;
                 const handler = () => showInfo(input, tooltip);
                 input.addEventListener('input', handler);
                 
-                // 清理函数
                 const cleanup = () => {
                     input.removeEventListener('input', handler);
                     input.removeEventListener('blur', cleanup);
@@ -189,7 +172,6 @@
     // 确保脚本只初始化一次
     if (!window._crystalHelperInitialized) {
         window._crystalHelperInitialized = true;
-        console.log('Crystal Helper 脚本开始运行');
         init();
     }
 })(); 
