@@ -1,21 +1,21 @@
 // ==UserScript==
 // @name         Crystal Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  帮助查询水晶信息
 // @author       nicsnakevip
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @connect      raw.githubusercontent.com
 // @connect      githubusercontent.com
-// @updateURL    https://raw.githubusercontent.com/nicsnakevip/crystal_data/main/crystal_helper.user.js
+// @updateURL    https://raw.githubusercontent.com/nicsnakevip/crystal-helper/main/src/userscript/crystal_helper.user.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
     // GitHub数据源
-    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/nicsnakevip/crystal_data/main/crystal_data.json';
+    const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/nicsnakevip/crystal-helper/main/data/processed/crystal_data.json';
 
     let crystalData = null;
 
@@ -25,26 +25,15 @@
         GM_xmlhttpRequest({
             method: 'GET',
             url: GITHUB_RAW_URL,
-            headers: {
-                'Accept': 'application/json'
-            },
             onload: function(response) {
                 try {
-                    if (response.status !== 200) {
-                        console.error('加载失败，状态码:', response.status);
-                        return;
-                    }
-                    
-                    const data = JSON.parse(response.responseText);
-                    if (!Array.isArray(data)) {
-                        console.error('数据格式错误，应该是数组');
-                        return;
-                    }
-                    
-                    crystalData = data;
+                    console.log('收到数据响应:', response.status);
+                    console.log('响应数据:', response.responseText.substring(0, 100) + '...');
+                    crystalData = JSON.parse(response.responseText);
                     console.log('水晶数据加载成功:', crystalData.length + ' 条记录');
                 } catch (e) {
                     console.error('解析水晶数据失败:', e);
+                    console.error('响应内容:', response.responseText);
                 }
             },
             onerror: function(error) {
@@ -55,6 +44,7 @@
 
     // 创建悬浮提示框
     function createTooltip() {
+        console.log('创建提示框');
         const tooltip = document.createElement('div');
         tooltip.style.cssText = `
             position: fixed;
@@ -64,9 +54,9 @@
             border-radius: 6px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
             display: none;
-            z-index: 999999;
+            z-index: 10000;
             max-width: 400px;
-            min-width: 200px;
+            min-width: 180px;
             font-size: 14px;
             line-height: 1.5;
             color: #333;
@@ -78,38 +68,52 @@
     // 显示提示信息
     function showInfo(input, tooltip) {
         const value = input.value.trim();
+        console.log('输入值:', value);
+        console.log('当前数据状态:', crystalData ? '已加载' : '未加载');
         
         if (!value || !crystalData) {
-            tooltip.style.display = 'none';
+            console.log('无效输入或数据未加载');
             return;
         }
 
-        // 搜索匹配项
-        let matchingItems = crystalData.filter(item => {
-            if (!item || typeof item !== 'object') return false;
-            
-            // 优先匹配searchKey
-            if (item.searchKey && item.searchKey === value) {
-                return true;
-            }
-            
-            // 如果没有完全匹配的searchKey，则进行模糊匹配
-            return (item.searchKey && item.searchKey.includes(value));
-        });
+        // 首先尝试精确匹配name或category
+        let matchingItems = crystalData.filter(item => 
+            item.name === value || item.category === value ||
+            (item.searchKey && item.searchKey.split(/[,，、]/).some(key => key.trim() === value))
+        );
+        console.log('精确匹配结果数:', matchingItems.length);
+
+        // 如果没有精确匹配，则尝试模糊匹配
+        if (matchingItems.length === 0) {
+            matchingItems = crystalData.filter(item => 
+                item.name.includes(value) || 
+                item.category.includes(value) ||
+                (item.searchKey && item.searchKey.includes(value))
+            );
+            console.log('模糊匹配结果数:', matchingItems.length);
+        }
 
         if (matchingItems.length > 0) {
+            console.log('找到匹配项:', matchingItems);
+            // 显示name和category
             const info = matchingItems.map(item => {
+                // 处理分类路径显示
+                const nameParts = item.name.split('/');
+                const lastNamePart = nameParts[nameParts.length - 1];
+                const categoryPath = nameParts.slice(0, -1).join(' > ');
+                
                 return `
                     <div style="
-                        padding: 10px;
-                        border: 1px solid #e8e8e8;
+                        padding: 8px;
+                        border: 1px solid #eee;
                         border-radius: 4px;
                         background: #fafafa;
                         margin-bottom: 8px;
+                        line-height: 1.6;
                     ">
-                        <div style="color: #333;">
-                            <div style="font-weight: bold; margin-bottom: 4px;">${item.name || ''}</div>
-                            <div style="font-size: 13px; color: #666;">分类：${item.category || ''}</div>
+                        <div style="color: #34495e;">
+                            <strong>${lastNamePart}</strong>
+                            ${categoryPath ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">分类路径: ${categoryPath}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -122,35 +126,43 @@
             const rect = input.getBoundingClientRect();
             const tooltipHeight = tooltip.offsetHeight;
             const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
             
-            if (rect.bottom + tooltipHeight > viewportHeight) {
-                tooltip.style.top = (rect.top - tooltipHeight - 5) + 'px';
+            // 垂直位置调整
+            if (rect.bottom + tooltipHeight + 10 > viewportHeight) {
+                tooltip.style.top = Math.max(5, rect.top - tooltipHeight - 5) + 'px';
             } else {
                 tooltip.style.top = (rect.bottom + 5) + 'px';
             }
-            tooltip.style.left = rect.left + 'px';
+            
+            // 水平位置调整
+            let left = rect.left;
+            if (left + tooltip.offsetWidth > viewportWidth) {
+                left = viewportWidth - tooltip.offsetWidth - 5;
+            }
+            tooltip.style.left = Math.max(5, left) + 'px';
         } else {
+            console.log('未找到匹配项');
             tooltip.style.display = 'none';
         }
     }
 
     // 初始化
     function init() {
+        console.log('初始化脚本...');
         loadData();
         const tooltip = createTooltip();
 
         // 监听所有输入框
         document.addEventListener('focus', function(e) {
             if (e.target.tagName === 'INPUT') {
+                console.log('输入框获得焦点');
                 const input = e.target;
+                // 移除可能存在的旧事件监听器
                 const handler = () => showInfo(input, tooltip);
+                input.removeEventListener('input', handler);
+                // 添加新的事件监听器
                 input.addEventListener('input', handler);
-                
-                const cleanup = () => {
-                    input.removeEventListener('input', handler);
-                    input.removeEventListener('blur', cleanup);
-                };
-                input.addEventListener('blur', cleanup);
             }
         }, true);
 
@@ -172,6 +184,7 @@
     // 确保脚本只初始化一次
     if (!window._crystalHelperInitialized) {
         window._crystalHelperInitialized = true;
+        console.log('Crystal Helper 脚本开始运行');
         init();
     }
 })(); 
