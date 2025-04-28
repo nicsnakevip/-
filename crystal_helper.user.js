@@ -109,6 +109,9 @@
                 let displayName = item.name || '';
                 let categoryName = item.category || '';
                 
+                // 提取最后一级分类名称
+                const lastCategory = displayName.split('--').pop().split('---').pop();
+                
                 return `
                     <div style="
                         padding: 10px;
@@ -118,7 +121,7 @@
                         margin-bottom: 8px;
                     ">
                         <div style="color: #333;">
-                            ${displayName ? `<div style="font-weight: bold; margin-bottom: 4px;">${displayName}</div>` : ''}
+                            <div style="font-weight: bold; margin-bottom: 4px;">${displayName}</div>
                             <div style="font-size: 13px; color: #666;">分类：${categoryName}</div>
                         </div>
                     </div>
